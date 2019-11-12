@@ -42,5 +42,5 @@ Usage: ecotop <Gauge1> [Color(s)] ... <GaugeN> [Color(s)]
 ┗━━━━━━━━┛
 ```
 ## Notes
-Only available for Nvidia GPUs
+Only available for Nvidia GPUs <br>
 The code in this script is pretty sloppy, sorry about that. 
