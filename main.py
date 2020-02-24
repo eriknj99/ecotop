@@ -137,7 +137,7 @@ def help():
 	"┗━━━━━━━━━━━━┻━━━━┻━━━━━━━━━━━━━┛  \n\n"
 
 	"-All Color Arguments are optional.\n"
-	"-Gauges will be desplayed in the order they are entered.\n"
+	"-Gauges will be displayed in the order they are entered.\n"
 	"\n Colors\n"
 	"┏━━━━━━━━┓\n"
 	"┃"+colored('grey','grey')+"    ┃\n"
