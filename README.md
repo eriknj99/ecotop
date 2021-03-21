@@ -43,4 +43,13 @@ Usage: ecotop <Gauge1> [Color(s)] ... <GaugeN> [Color(s)]
 ```
 ## Notes
 Now works with Nvidia and AMD GPUs! 
+For AMD GPUs you must use (amdgpu-fan)[https://github.com/chestm007/amdgpu-fan] for your fan control. Without it the fan speed reporting will be innacurate.
+
+## Dependencies 
+```
+gpustat
+termcolor
+pyamdgpuinfo
+amdgpu_fan
+```
 
