@@ -47,9 +47,9 @@ For AMD GPUs you must use (amdgpu-fan)[https://github.com/chestm007/amdgpu-fan] 
 
 ## Dependencies 
 ```
-gpustat
 termcolor
-pyamdgpuinfo
-amdgpu_fan
+gpustat        (NVidia)
+pyamdgpuinfo   (AMD)
+amdgpu_fan     (AMD)
 ```
 
