@@ -327,11 +327,33 @@ def renderAMD():
                 output += memoryVal(memUsed, memTotal, i, cmv)	
     return output
 
+num_amd = pyamdgpuinfo.detect_gpus()
 
+num_nv = 0
+try:
+    g = gpustat.GPUStatCollection.new_query() 
+    sio= io.StringIO()
+    g.print_json(sio)
+    j=json.loads(sio.getvalue())
+    num_nv = len(j["gpus"])
+except:
+   print("No Nvidia GPUs detected") 
+
+if(num_amd == 0 and num_nv == 0):
+    print("No compatible GPUs detected. Exiting")
+    exit(0)
 
 while(True):
-    amdGraphs = renderAMD()
-    nvGraphs = renderNV()
+    if(num_amd != 0):
+        amdGraphs = renderAMD()
+    else:
+        amdGraphs = ""
+
+    if(num_nv != 0): 
+        nvGraphs = renderNV()
+    else:
+        nvGraphs = ""
+
     os.system('clear')
     print(amdGraphs,end="")
     print(nvGraphs,end="")
