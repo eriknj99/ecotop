@@ -1,5 +1,11 @@
 #!/usr/bin/python
-import gpustat
+
+# Try importing gpustat 
+try:
+    import gpustat
+except:
+    pass
+
 import json
 import io 
 import os
@@ -8,10 +14,14 @@ from termcolor import colored
 from time import sleep
 import sys
 import signal
-import pyamdgpuinfo
-from amdgpu_fan.lib.amdgpu import Scanner
-from amdgpu_fan.lib.curve import Curve
 import yaml
+
+try:
+    import pyamdgpuinfo
+    from amdgpu_fan.lib.amdgpu import Scanner
+    from amdgpu_fan.lib.curve import Curve
+except:
+    pass
 
 def drawGraph(lable, unit, val, max, color):
 	
