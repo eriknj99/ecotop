@@ -5,6 +5,7 @@
 try:
     import gpustat
 except:
+    print("Warning: gpustat not found. Assuming no Nvidia GPUs")
     pass
 
 import json
@@ -24,6 +25,7 @@ try:
     from amdgpu_fan.lib.amdgpu import Scanner
     from amdgpu_fan.lib.curve import Curve
 except:
+    print("Warning: pyamdgpuinfo or amdgpu_fan not found. Assuming no AMD GPUs")
     pass
 
 def drawGraph(lable, unit, val, max, color):
