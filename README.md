@@ -1,8 +1,8 @@
 # ecotop
-A customizable Nvidia GPU monitoring script
+A customizable GPU monitoring script
 
 
-![ecotop example](https://i.imgur.com/LTtT6Zm.png)
+![ecotop example](https://i.imgur.com/NBFSdXn.png)
 
 ## Usage
 ```
@@ -42,5 +42,5 @@ Usage: ecotop <Gauge1> [Color(s)] ... <GaugeN> [Color(s)]
 ┗━━━━━━━━┛
 ```
 ## Notes
-Only available for Nvidia GPUs <br>
-The code in this script is pretty sloppy, sorry about that. 
+Now works with Nvidia and AMD GPUs! 
+
