@@ -240,7 +240,18 @@ def getAMDFanSpeedHack(temp):
 def getAMDFanSpeedReal(id):
     scanner = Scanner()
     return int(scanner.cards.get("card" + str(gpu.gpu_id)).fan_speed)
+
+# pyamdgpuinfo does not have support for finding the max power consumption
+# This function will attempt to retrieve the value from the hwmon folder for a given gpu_id.
+# If it fails a default value of 250 will be used. The max value doesn't really matter that much so this is a viable solution.
+def getAMDMaxPower(id):
+    try:
+        with open("/sys/class/drm/card" + str(id) + "/device/hwmon/hwmon1/power1_cap","r") as f:
+            return int(int(f.read()) / 1000000)
+    except:
+        return 250
     
+
 def renderAMD():
     n_devices = pyamdgpuinfo.detect_gpus()
     #Execute functions for each gpu in the argument specified order. 
@@ -260,21 +271,22 @@ def renderAMD():
                 output += fan(fanSpeed, i, cf)
             if(arg == 'p'):
                 powerDraw = gpu.query_power()
-                maxPower = 250
+                maxPower = getAMDMaxPower(gpu.gpu_id)
                 output += power(powerDraw, maxPower, i, cp)
             if(arg == 'm'):
                 memUsed = int(gpu.query_vram_usage() / 100000)
                 memTotal = int(gpu.memory_info["vram_size"] / 100000)
                 output += memory(memUsed, memTotal, i, cm)
             if(arg == 'mp'):
-                memUsed =  gpu.query_vram_usage()
-                memTotal = gpu.memory_info["vram_size"]
+                memUsed = int(gpu.query_vram_usage() / 100000)
+                memTotal = int(gpu.memory_info["vram_size"] / 100000)
                 output += memoryPercent(memUsed, memTotal, i, cmp)
             if(arg == 'mv'):
-                memUsed = gpu.query_vram_usage()
-                memTotal = gpu.memory_info["vram_size"]
+                memUsed = int(gpu.query_vram_usage() / 100000)
+                memTotal = int(gpu.memory_info["vram_size"] / 100000)
                 output += memoryVal(memUsed, memTotal, i, cmv)	
     return output
+
 
 # --Program Start--
 
@@ -342,6 +354,7 @@ if(len(orderedArgs) == 0):
 	orderedArgs.append("f")
 	orderedArgs.append("p")
 	orderedArgs.append("mp")
+
 
 # Scan for AMD GPUs
 num_amd = 0
