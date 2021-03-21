@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-# Try importing gpustat 
+# Try importing gpustat
+# If it is not installed assume there are no nvidia GPUs
 try:
     import gpustat
 except:
@@ -16,6 +17,8 @@ import sys
 import signal
 import yaml
 
+# Try importing AMD deps
+# If they are not found assume no AMD GPUs
 try:
     import pyamdgpuinfo
     from amdgpu_fan.lib.amdgpu import Scanner
@@ -337,7 +340,12 @@ def renderAMD():
                 output += memoryVal(memUsed, memTotal, i, cmv)	
     return output
 
-num_amd = pyamdgpuinfo.detect_gpus()
+# Scan for GPUs. If imports 
+num_amd = 0
+try:
+    num_amd = pyamdgpuinfo.detect_gpus()
+except:
+    pass
 
 num_nv = 0
 try:
@@ -347,11 +355,11 @@ try:
     j=json.loads(sio.getvalue())
     num_nv = len(j["gpus"])
 except:
-   print("No Nvidia GPUs detected") 
+    pass
 
 if(num_amd == 0 and num_nv == 0):
-    print("No compatible GPUs detected. Exiting")
-    exit(0)
+    print("No compatible GPUs detected. \nAre you sure you installed the required dependencies for your cards?")
+    exit(1)
 
 while(True):
     if(num_amd != 0):
