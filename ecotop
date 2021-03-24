@@ -215,10 +215,10 @@ def renderNV():
 # There is a kernel bug that makes it imposible to read the actual PWM value for AMD GPUs.
 # This function will read your amdgpu-fan config file and calculate the value that amdgpu-fan should set the fan speed to for a given temperature. 
 # It will return the correct value ONLY if amdgpu-fan is configured correctly and currently running.
-# It does not account for multi card configurations.
+# It does not account for multi card configurations in amdgpu-fan.
 def getAMDFanSpeedHack(temp):
     location = '/etc/amdgpu-fan.yaml'
-    #If the config file does not exist use the default configuration
+    #If the config file does not exist use the default amdgpu-fan configuration
     config = yaml.load('''
                 speed_matrix:
                 - [0, 0]
