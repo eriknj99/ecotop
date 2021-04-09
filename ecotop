@@ -7,7 +7,6 @@ try:
 except:
     print("Warning: gpustat not found. Assuming no Nvidia GPUs")
     pass
-
 import json
 import io 
 import os
@@ -28,6 +27,8 @@ except:
     print("Warning: pyamdgpuinfo or amdgpu_fan not found. Assuming no AMD GPUs")
     pass
 
+
+        
 def drawGraph(lable, unit, val, max, color):
 	
 	numTicks = 10 
@@ -105,7 +106,6 @@ def drawGraph(lable, unit, val, max, color):
 	return out
 
 
-
 def temp(temp, i, color1, color2, color3):
 	color = color1
 	if(temp > 70):
@@ -174,42 +174,45 @@ def clear_on_exit(sig, frame):
 	sys.exit(0)
 
 	
-def renderNV():
+def renderNV(num_amd):
     #Use GPUStat to retrieve GPU data as JSON
     g = gpustat.GPUStatCollection.new_query() 
 
     sio= io.StringIO()
     g.print_json(sio)
     j=json.loads(sio.getvalue())
+    output = ""
     #Execute functions for each gpu in the argument specified order. 
     for i in range(0, len(j["gpus"])):
-        output = (str(j["gpus"][i]["name"]) + "\n")
-        for arg in orderedArgs:
-            if(arg == 'u'):
-                ut = j['gpus'][i]['utilization.gpu']
-                output += util(ut,i,cu)
-            if(arg == 't'):	
-                tm = j['gpus'][i]['temperature.gpu']
-                output += temp(tm,i,ct1,ct2,ct3)
-            if(arg == 'f'):
-                fanSpeed = j['gpus'][i]['fan.speed']
-                output += fan(fanSpeed, i, cf)
-            if(arg == 'p'):
-                powerDraw = j['gpus'][i]['power.draw']
-                maxPower = j['gpus'][i]['enforced.power.limit']
-                output += power(powerDraw, maxPower, i, cp)
-            if(arg == 'm'):
-                memUsed = j['gpus'][i]['memory.used']
-                memTotal = j['gpus'][i]['memory.total']
-                output += memory(memUsed, memTotal, i, cm)
-            if(arg == 'mp'):
-                memUsed = j['gpus'][i]['memory.used']
-                memTotal = j['gpus'][i]['memory.total']
-                output += memoryPercent(memUsed, memTotal, i, cmp)
-            if(arg == 'mv'):
-                memUsed = j['gpus'][i]['memory.used']
-                memTotal = j['gpus'][i]['memory.total']
-                output += memoryVal(memUsed, memTotal, i, cmv)	
+        if(len(shown_gpus)==0 or (i+num_amd) in shown_gpus):
+            output += "[" + str(i + num_amd) + "] "
+            output += (str(j["gpus"][i]["name"]) + "\n")
+            for arg in orderedArgs:
+                if(arg == 'u'):
+                    ut = j['gpus'][i]['utilization.gpu']
+                    output += util(ut,i,cu)
+                if(arg == 't'):	
+                    tm = j['gpus'][i]['temperature.gpu']
+                    output += temp(tm,i,ct1,ct2,ct3)
+                if(arg == 'f'):
+                    fanSpeed = j['gpus'][i]['fan.speed']
+                    output += fan(fanSpeed, i, cf)
+                if(arg == 'p'):
+                    powerDraw = j['gpus'][i]['power.draw']
+                    maxPower = j['gpus'][i]['enforced.power.limit']
+                    output += power(powerDraw, maxPower, i, cp)
+                if(arg == 'm'):
+                    memUsed = j['gpus'][i]['memory.used']
+                    memTotal = j['gpus'][i]['memory.total']
+                    output += memory(memUsed, memTotal, i, cm)
+                if(arg == 'mp'):
+                    memUsed = j['gpus'][i]['memory.used']
+                    memTotal = j['gpus'][i]['memory.total']
+                    output += memoryPercent(memUsed, memTotal, i, cmp)
+                if(arg == 'mv'):
+                    memUsed = j['gpus'][i]['memory.used']
+                    memTotal = j['gpus'][i]['memory.total']
+                    output += memoryVal(memUsed, memTotal, i, cmv)	
     return output
 
 # There is a kernel bug that makes it imposible to read the actual PWM value for AMD GPUs.
@@ -246,7 +249,9 @@ def getAMDFanSpeedReal(id):
 # pyamdgpuinfo does not have support for finding the max power consumption
 # This function will attempt to retrieve the value from the hwmon folder for a given gpu_id.
 # If it fails a default value of 250 will be used. The max value doesn't really matter that much so this is a viable solution.
+
 def getAMDMaxPower(id):
+    return 250 # This function does not return a true value. Just defaulting to 250 for now
     try:
         with open("/sys/class/drm/card" + str(id) + "/device/hwmon/hwmon1/power1_cap","r") as f:
             return int(int(f.read()) / 1000000)
@@ -256,37 +261,39 @@ def getAMDMaxPower(id):
 
 def renderAMD():
     n_devices = pyamdgpuinfo.detect_gpus()
+    output = ""
     #Execute functions for each gpu in the argument specified order. 
     for i in range(0, n_devices):
         gpu = pyamdgpuinfo.get_gpu(i)
-        
-        output = (str(gpu.name) + "\n")
-        for arg in orderedArgs:
-            if(arg == 'u'):
-                ut = int(gpu.query_load() * 100)
-                output += util(ut,i,cu)
-            if(arg == 't'):	
-                tm = gpu.query_temperature()
-                output += temp(tm,i,ct1,ct2,ct3)
-            if(arg == 'f'):
-                fanSpeed = getAMDFanSpeedHack(gpu.query_temperature()) 
-                output += fan(fanSpeed, i, cf)
-            if(arg == 'p'):
-                powerDraw = gpu.query_power()
-                maxPower = getAMDMaxPower(gpu.gpu_id)
-                output += power(powerDraw, maxPower, i, cp)
-            if(arg == 'm'):
-                memUsed = int(gpu.query_vram_usage() / 100000)
-                memTotal = int(gpu.memory_info["vram_size"] / 100000)
-                output += memory(memUsed, memTotal, i, cm)
-            if(arg == 'mp'):
-                memUsed = int(gpu.query_vram_usage() / 100000)
-                memTotal = int(gpu.memory_info["vram_size"] / 100000)
-                output += memoryPercent(memUsed, memTotal, i, cmp)
-            if(arg == 'mv'):
-                memUsed = int(gpu.query_vram_usage() / 100000)
-                memTotal = int(gpu.memory_info["vram_size"] / 100000)
-                output += memoryVal(memUsed, memTotal, i, cmv)	
+        if(len(shown_gpus)==0 or i in shown_gpus):
+            output += "[" + str(i) + "] "
+            output += (str(gpu.name) + "\n")
+            for arg in orderedArgs:
+                if(arg == 'u'):
+                    ut = int(gpu.query_load() * 100)
+                    output += util(ut,i,cu)
+                if(arg == 't'):	
+                    tm = gpu.query_temperature()
+                    output += temp(tm,i,ct1,ct2,ct3)
+                if(arg == 'f'):
+                    fanSpeed = getAMDFanSpeedHack(gpu.query_temperature()) 
+                    output += fan(fanSpeed, i, cf)
+                if(arg == 'p'):
+                    powerDraw = gpu.query_power()
+                    maxPower = getAMDMaxPower(gpu.gpu_id)
+                    output += power(powerDraw, maxPower, i, cp)
+                if(arg == 'm'):
+                    memUsed = int(gpu.query_vram_usage() / 100000)
+                    memTotal = int(gpu.memory_info["vram_size"] / 100000)
+                    output += memory(memUsed, memTotal, i, cm)
+                if(arg == 'mp'):
+                    memUsed = int(gpu.query_vram_usage() / 100000)
+                    memTotal = int(gpu.memory_info["vram_size"] / 100000)
+                    output += memoryPercent(memUsed, memTotal, i, cmp)
+                if(arg == 'mv'):
+                    memUsed = int(gpu.query_vram_usage() / 100000)
+                    memTotal = int(gpu.memory_info["vram_size"] / 100000)
+                    output += memoryVal(memUsed, memTotal, i, cmv)	
     return output
 
 
@@ -295,6 +302,7 @@ def renderAMD():
 signal.signal(signal.SIGINT, clear_on_exit)
 
 orderedArgs = []
+shown_gpus = []
 
 #Default colors
 cu = 'red'
@@ -345,9 +353,20 @@ for i in range(1,len(sys.argv)):
 	if(sys.argv[i] == '-mv'):
 		orderedArgs.append("mv")
 		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-			cmv = sys.argv[i+1]	
-
+			cmv = sys.argv[i+1]
+	if(sys.argv[i] == '-gpu'):
+		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+                        try:
+                            shown_gpus.append(int(sys.argv[i+1]))	
+                        except:
+                            print("Input Error. GPU value must be an integer.")
+            
+                        
 output = ''
+
+#print(shown_gpus)
+#exit()
+
 
 if(len(orderedArgs) == 0):
 	output = ("No arguments given, using default config.\nType 'ecotop help' for more options.\n\n\n")
@@ -387,7 +406,7 @@ while(True):
         amdGraphs = ""
 
     if(num_nv != 0): 
-        nvGraphs = renderNV()
+        nvGraphs = renderNV(num_amd)
     else:
         nvGraphs = ""
 
