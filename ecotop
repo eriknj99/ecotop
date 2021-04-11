@@ -28,6 +28,15 @@ except:
     pass
 
 
+# Generate the graph unless raw output is enabled
+def getOutput(lable, unit, val, max, color):
+    if(raw_output):
+        return getRaw(lable, unit, val, max) 
+    else:
+        return drawGraph(lable, unit, val, max, color)
+
+def getRaw(lable, unit, val, max):
+    return str(val) + unit + "\n"
         
 def drawGraph(lable, unit, val, max, color):
 	
@@ -42,7 +51,7 @@ def drawGraph(lable, unit, val, max, color):
 	c3 = '┘'
 	bar = '█'
 	halfBar = '▌'
-	space = ' '
+	space = '-'
 	
 	rows, columns = os.popen('stty size', 'r').read().split()
 	columns = int(columns) - (len(str(max) + '          ' + unit))
@@ -112,26 +121,26 @@ def temp(temp, i, color1, color2, color3):
 		color = color2
 	if(temp > 80):
 		color = color3
-	return drawGraph("Temperature (°C)", "°", temp,100, color)	
+	return getOutput("Temperature (°C)", "°", temp,100, color)	
 
 def util(util,i,color):
-	return drawGraph("Utilization", "%", util,100, color)
+	return getOutput("Utilization", "%", util,100, color)
 
 def fan(fanSpeed,i,color):
-	return drawGraph("Fan", "%", fanSpeed,100, color)
+	return getOutput("Fan", "%", fanSpeed,100, color)
 
 def power(powerDraw, powerMax, i, color):
-	return drawGraph("Power", "W", powerDraw,powerMax, color)
+	return getOutput("Power", "W", powerDraw,powerMax, color)
 
 def memoryPercent(memUsed, memTotal, i, color):
-	return drawGraph("Memory", "%", round(100*(memUsed/memTotal)), 100, color)
+	return getOutput("Memory", "%", round(100*(memUsed/memTotal)), 100, color)
 
 def memoryVal(memUsed, memTotal, i, color):	
-	return drawGraph("Memory", "Mb", memUsed,memTotal, color)
+	return getOutput("Memory", "Mb", memUsed,memTotal, color)
 
 def memory(memUsed, memTotal, i, color):
 	percent = colored(str(round(100*(memUsed/memTotal))) + '%', color)
-	return drawGraph('Memory | ' + percent, 'Mb', memUsed,memTotal, color)
+	return getOutput('Memory | ' + percent, 'Mb', memUsed,memTotal, color)
 
 def help():
 	print(""+
@@ -142,7 +151,9 @@ def help():
 	"                       /_/       \n")
 
 	print("---HELP---\n"
-	"Usage: ecotop <Gauge1> [Color(s)] ... <GaugeN> [Color(s)] \n"
+	"Usage: ecotop <Gauge1> [Color(s)] ... <GaugeN> [Color(s)] \n\n"
+        "-gpu [int]     Display only this GPU. (This argument can be used more than once)\n"
+        "-raw           Display only the values and units of the selected guages. Easy to parse.\n\n"
 	"╔════════════╦════╦═════════════╗  \n"
 	"║Gauge       ║Arg ║Color(s)     ║  \n"
 	"╠════════════╬════╬═════════════╣  \n"
@@ -154,7 +165,7 @@ def help():
 	"┃Memory (%)  ┃-mp ┃<color1>     ┃  \n"
 	"┃Memory (Mb) ┃-mv ┃<color1>     ┃  \n"
 	"┗━━━━━━━━━━━━┻━━━━┻━━━━━━━━━━━━━┛  \n\n"
-
+        
 	"-All Color Arguments are optional.\n"
 	"-Gauges will be desplayed in the order they are entered.\n"
 	"\n Colors\n"
@@ -303,6 +314,7 @@ signal.signal(signal.SIGINT, clear_on_exit)
 
 orderedArgs = []
 shown_gpus = []
+raw_output = False 
 
 #Default colors
 cu = 'red'
@@ -355,17 +367,16 @@ for i in range(1,len(sys.argv)):
 		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
 			cmv = sys.argv[i+1]
 	if(sys.argv[i] == '-gpu'):
-		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-                        try:
-                            shown_gpus.append(int(sys.argv[i+1]))	
-                        except:
-                            print("Input Error. GPU value must be an integer.")
-            
-                        
-output = ''
+	    if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+                try:
+                    shown_gpus.append(int(sys.argv[i+1]))	
+                except:
+                    print("Input Error. GPU value must be an integer.")
+              
+	if(sys.argv[i] == '-raw'):
+            raw_output=True
 
-#print(shown_gpus)
-#exit()
+output = ''
 
 
 if(len(orderedArgs) == 0):
@@ -413,6 +424,11 @@ while(True):
     os.system('clear')
     print(amdGraphs,end="")
     print(nvGraphs,end="")
+
+    # If raw output only print once and exit
+    if(raw_output):
+        break
+
 
     sleep(1)
 	
