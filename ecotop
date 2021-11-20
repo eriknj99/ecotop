@@ -8,7 +8,7 @@ except:
     print("Warning: gpustat not found. Assuming no Nvidia GPUs")
     pass
 import json
-import io 
+import io
 import os
 import math
 from termcolor import colored
@@ -16,6 +16,7 @@ from time import sleep
 import sys
 import signal
 import yaml
+import bar
 
 # Try importing AMD deps
 # If they are not found assume no AMD GPUs
@@ -31,180 +32,125 @@ except:
 # Generate the graph unless raw output is enabled
 def getOutput(lable, unit, val, max, color):
     if(raw_output):
-        return getRaw(lable, unit, val, max) 
+        return getRaw(lable, unit, val, max)
     else:
         return drawGraph(lable, unit, val, max, color)
 
+
 def getRaw(lable, unit, val, max):
+    if(raw_output_nounits):
+        return str(val) + "\n"
+
     return str(val) + unit + "\n"
-        
+
+
 def drawGraph(lable, unit, val, max, color):
-	
-	numTicks = 10 
-	
-	tick = '┼'
-	hLine = '─'	
-	vLine = '│'
-	c0 = '├'
-	c1 = '┤'
-	c2 = '└'
-	c3 = '┘'
-	bar = '█'
-	halfBar = '▌'
-	space = '-'
-	
-	rows, columns = os.popen('stty size', 'r').read().split()
-	columns = int(columns) - (len(str(max) + '          ' + unit))
 
-	#Draw Lable
-	out = (lable + " | " + colored(str(val) + unit, color) + "\n")
-	
-	#Label ticks
-	for i in range(0,numTicks):
-		tmp = str(int(i*(max/numTicks))) + unit	
-		out += tmp
-		for j in range(0,int((int(columns)/numTicks) - ((len(tmp) - 1)))):
-			out += ' ' 
-	out += str(max) + unit + "\n"
-	
-	#Draw top ticks
-	ticks = ''
-	for i in range(0,numTicks+1):
-		if(i == 0):
-			ticks+=c0
-		elif(i == numTicks):
-			ticks+=c1
-		else:
-			ticks += tick
-		if(i != numTicks):
-			for j in range(0,int((int(columns)/numTicks))):
-				ticks += hLine			
-	out += ticks + "\n"
+    numTicks = 10
 
-
-	
-	#Fill in bar
-	barLine = ""
-	barSize = round((len(ticks) - 1) * float(val/max))
-	for i in range(0, barSize - 1):
-		barLine += bar	
-		#out += "[" + barLine + " : " + str(len(barLine)) + "]\n"
-	if(val != 0 and val != max):
-		barLine += halfBar
-	
-	while(val != max and len(barLine) < len(ticks) - 2):
-		barLine += space 
-		
-	out += vLine + colored(barLine,color) + vLine + "\n"
-	
-	#Draw bottom ticks
-	ticks = ''
-	for i in range(0,numTicks+1):
-		if(i == 0):
-			ticks+=c2
-		elif(i == numTicks):
-			ticks+=c3
-		else:
-			ticks += hLine
-		if(i != numTicks):
-			for j in range(0,int((int(columns)/numTicks))):
-				ticks += hLine	
-
-	out += ticks + "\n"
-
-	return out
+    return bar.drawGraph(lable, unit, val, 0.0, max, color=color, numTicks=5) + "\n"
 
 
 def temp(temp, i, color1, color2, color3):
-	color = color1
-	if(temp > 70):
-		color = color2
-	if(temp > 80):
-		color = color3
-	return getOutput("Temperature (°C)", "°", temp,100, color)	
+    color = color1
+    if(temp > 70):
+        color = color2
+    if(temp > 80):
+        color = color3
+    return getOutput("Temperature (°C)", "°", temp, 100, color)
 
-def util(util,i,color):
-	return getOutput("Utilization", "%", util,100, color)
 
-def fan(fanSpeed,i,color):
-	return getOutput("Fan", "%", fanSpeed,100, color)
+def util(util, i, color):
+    return getOutput("Utilization", "%", util, 100, color)
+
+
+def fan(fanSpeed, i, color):
+    return getOutput("Fan", "%", fanSpeed, 100, color)
+
 
 def power(powerDraw, powerMax, i, color):
-	return getOutput("Power", "W", powerDraw,powerMax, color)
+    return getOutput("Power", "W", powerDraw, powerMax, color)
+
 
 def memoryPercent(memUsed, memTotal, i, color):
-	return getOutput("Memory", "%", round(100*(memUsed/memTotal)), 100, color)
+    return getOutput("Memory", "%", round(100*(memUsed/memTotal)), 100, color)
 
-def memoryVal(memUsed, memTotal, i, color):	
-	return getOutput("Memory", "Mb", memUsed,memTotal, color)
+
+def memoryVal(memUsed, memTotal, i, color):
+    return getOutput("Memory", "Mb", memUsed, memTotal, color)
+
 
 def memory(memUsed, memTotal, i, color):
-	percent = colored(str(round(100*(memUsed/memTotal))) + '%', color)
-	return getOutput('Memory | ' + percent, 'Mb', memUsed,memTotal, color)
+    percent = colored(str(round(100*(memUsed/memTotal))) + '%', color)
+    return getOutput('Memory | ' + percent, 'Mb', memUsed, memTotal, color)
+
 
 def help():
-	print(""+
-	"   _____________  __             \n"
-	"  / __/ ___/ __ \/ /____  ___    \n"
-	" / _// /__/ /_/ / __/ _ \/ _ \   \n"
-	"/___/\___/\____/\__/\___/ .__/   \n"
-	"                       /_/       \n")
+    print("" +
+          "   _____________  __             \n"
+          "  / __/ ___/ __ \/ /____  ___    \n"
+          " / _// /__/ /_/ / __/ _ \/ _ \   \n"
+          "/___/\___/\____/\__/\___/ .__/   \n"
+          "                       /_/       \n")
 
-	print("---HELP---\n"
-	"Usage: ecotop <Gauge1> [Color(s)] ... <GaugeN> [Color(s)] \n\n"
-        "-gpu [int]     Display only this GPU. (This argument can be used more than once)\n"
-        "-raw           Display only the values and units of the selected guages. Easy to parse.\n\n"
-	"╔════════════╦════╦═════════════╗  \n"
-	"║Gauge       ║Arg ║Color(s)     ║  \n"
-	"╠════════════╬════╬═════════════╣  \n"
-	"┃Utilization ┃-u  ┃<color1>     ┃  \n"
-	"┃Temperature ┃-t  ┃<color1,2,3> ┃  \n"
-	"┃Fan Speed   ┃-f  ┃<color1>     ┃  \n"
-	"┃Power Usage ┃-p  ┃<color1>     ┃  \n"
-	"┃Memory      ┃-m  ┃<color1>     ┃  \n"
-	"┃Memory (%)  ┃-mp ┃<color1>     ┃  \n"
-	"┃Memory (Mb) ┃-mv ┃<color1>     ┃  \n"
-	"┗━━━━━━━━━━━━┻━━━━┻━━━━━━━━━━━━━┛  \n\n"
-        
-	"-All Color Arguments are optional.\n"
-	"-Gauges will be desplayed in the order they are entered.\n"
-	"\n Colors\n"
-	"┏━━━━━━━━┓\n"
-	"┃"+colored('grey','grey')+"    ┃\n"
-	"┃"+colored('red','red')+"     ┃\n"
-	"┃"+colored('green','green')+"   ┃\n"
-	"┃"+colored('yellow','yellow')+"  ┃\n"
-	"┃"+colored('blue','blue')+"    ┃\n"
-	"┃"+colored('magenta','magenta')+" ┃\n"
-	"┃"+colored('cyan','cyan')+"    ┃\n"
-	"┃"+colored('white','white')+"   ┃\n"
-	"┗━━━━━━━━┛\n")
-#This function with the line below it will clear the screen and exit when ctrl+c is pressed
+    print("---HELP---\n"
+          "Usage: ecotop <Gauge1> [Color(s)] ... <GaugeN> [Color(s)] \n\n"
+          "-gpu [int]     Display only this GPU. (This argument can be used more than once)\n"
+          "-raw           Display only the values and units of the selected guages. Easy to parse.\n\n"
+          "╔════════════╦════╦═════════════╗  \n"
+          "║Gauge       ║Arg ║Color(s)     ║  \n"
+          "╠════════════╬════╬═════════════╣  \n"
+          "┃Utilization ┃-u  ┃<color1>     ┃  \n"
+          "┃Temperature ┃-t  ┃<color1,2,3> ┃  \n"
+          "┃Fan Speed   ┃-f  ┃<color1>     ┃  \n"
+          "┃Power Usage ┃-p  ┃<color1>     ┃  \n"
+          "┃Memory      ┃-m  ┃<color1>     ┃  \n"
+          "┃Memory (%)  ┃-mp ┃<color1>     ┃  \n"
+          "┃Memory (Mb) ┃-mv ┃<color1>     ┃  \n"
+          "┗━━━━━━━━━━━━┻━━━━┻━━━━━━━━━━━━━┛  \n\n"
+
+          "-All Color Arguments are optional.\n"
+          "-Gauges will be desplayed in the order they are entered.\n"
+          "\n Colors\n"
+          "┏━━━━━━━━┓\n"
+          "┃"+colored('grey', 'grey')+"    ┃\n"
+          "┃"+colored('red', 'red')+"     ┃\n"
+          "┃"+colored('green', 'green')+"   ┃\n"
+          "┃"+colored('yellow', 'yellow')+"  ┃\n"
+          "┃"+colored('blue', 'blue')+"    ┃\n"
+          "┃"+colored('magenta', 'magenta')+" ┃\n"
+          "┃"+colored('cyan', 'cyan')+"    ┃\n"
+          "┃"+colored('white', 'white')+"   ┃\n"
+          "┗━━━━━━━━┛\n")
+# This function with the line below it will clear the screen and exit when ctrl+c is pressed
+
+
 def clear_on_exit(sig, frame):
-	os.system('clear')
-	sys.exit(0)
+    os.system('clear')
+    sys.exit(0)
 
-	
+
 def renderNV(num_amd):
-    #Use GPUStat to retrieve GPU data as JSON
-    g = gpustat.GPUStatCollection.new_query() 
+    # Use GPUStat to retrieve GPU data as JSON
+    g = gpustat.GPUStatCollection.new_query()
 
-    sio= io.StringIO()
+    sio = io.StringIO()
     g.print_json(sio)
-    j=json.loads(sio.getvalue())
+    j = json.loads(sio.getvalue())
     output = ""
-    #Execute functions for each gpu in the argument specified order. 
+    # Execute functions for each gpu in the argument specified order.
     for i in range(0, len(j["gpus"])):
-        if(len(shown_gpus)==0 or (i+num_amd) in shown_gpus):
-            output += "[" + str(i + num_amd) + "] "
-            output += (str(j["gpus"][i]["name"]) + "\n")
+        if(len(shown_gpus) == 0 or (i+num_amd) in shown_gpus):
+            if(not raw_output):
+                output += "[" + str(i + num_amd) + "] "
+                output += (str(j["gpus"][i]["name"]) + "\n")
             for arg in orderedArgs:
                 if(arg == 'u'):
                     ut = j['gpus'][i]['utilization.gpu']
-                    output += util(ut,i,cu)
-                if(arg == 't'):	
+                    output += util(ut, i, cu)
+                if(arg == 't'):
                     tm = j['gpus'][i]['temperature.gpu']
-                    output += temp(tm,i,ct1,ct2,ct3)
+                    output += temp(tm, i, ct1, ct2, ct3)
                 if(arg == 'f'):
                     fanSpeed = j['gpus'][i]['fan.speed']
                     output += fan(fanSpeed, i, cf)
@@ -223,16 +169,18 @@ def renderNV(num_amd):
                 if(arg == 'mv'):
                     memUsed = j['gpus'][i]['memory.used']
                     memTotal = j['gpus'][i]['memory.total']
-                    output += memoryVal(memUsed, memTotal, i, cmv)	
+                    output += memoryVal(memUsed, memTotal, i, cmv)
     return output
 
 # There is a kernel bug that makes it imposible to read the actual PWM value for AMD GPUs.
-# This function will read your amdgpu-fan config file and calculate the value that amdgpu-fan should set the fan speed to for a given temperature. 
+# This function will read your amdgpu-fan config file and calculate the value that amdgpu-fan should set the fan speed to for a given temperature.
 # It will return the correct value ONLY if amdgpu-fan is configured correctly and currently running.
 # It does not account for multi card configurations in amdgpu-fan.
+
+
 def getAMDFanSpeedHack(temp):
     location = '/etc/amdgpu-fan.yaml'
-    #If the config file does not exist use the default amdgpu-fan configuration
+    # If the config file does not exist use the default amdgpu-fan configuration
     config = yaml.load('''
                 speed_matrix:
                 - [0, 0]
@@ -247,12 +195,14 @@ def getAMDFanSpeedHack(temp):
     if os.path.isfile(location):
         with open(location) as f:
             config = yaml.load(f)
-    
+
     curve = Curve(config.get('speed_matrix'))
     return int(curve.get_speed(temp))
 
 # This function will return the actual reported fan speed for your AMD GPU with givin id.
 # Due to a kernel bug this currently will always return 0 and is not used.
+
+
 def getAMDFanSpeedReal(id):
     scanner = Scanner()
     return int(scanner.cards.get("card" + str(gpu.gpu_id)).fan_speed)
@@ -261,33 +211,35 @@ def getAMDFanSpeedReal(id):
 # This function will attempt to retrieve the value from the hwmon folder for a given gpu_id.
 # If it fails a default value of 250 will be used. The max value doesn't really matter that much so this is a viable solution.
 
+
 def getAMDMaxPower(id):
-    return 250 # This function does not return a true value. Just defaulting to 250 for now
+    return 250  # This function does not return a true value. Just defaulting to 250 for now
     try:
-        with open("/sys/class/drm/card" + str(id) + "/device/hwmon/hwmon1/power1_cap","r") as f:
+        with open("/sys/class/drm/card" + str(id) + "/device/hwmon/hwmon1/power1_cap", "r") as f:
             return int(int(f.read()) / 1000000)
     except:
         return 250
-    
+
 
 def renderAMD():
     n_devices = pyamdgpuinfo.detect_gpus()
     output = ""
-    #Execute functions for each gpu in the argument specified order. 
+    # Execute functions for each gpu in the argument specified order.
     for i in range(0, n_devices):
         gpu = pyamdgpuinfo.get_gpu(i)
-        if(len(shown_gpus)==0 or i in shown_gpus):
-            output += "[" + str(i) + "] "
-            output += (str(gpu.name) + "\n")
+        if(len(shown_gpus) == 0 or i in shown_gpus):
+            if(not raw_output):
+                output += "[" + str(i) + "] "
+                output += (str(gpu.name) + "\n")
             for arg in orderedArgs:
                 if(arg == 'u'):
                     ut = int(gpu.query_load() * 100)
-                    output += util(ut,i,cu)
-                if(arg == 't'):	
+                    output += util(ut, i, cu)
+                if(arg == 't'):
                     tm = gpu.query_temperature()
-                    output += temp(tm,i,ct1,ct2,ct3)
+                    output += temp(tm, i, ct1, ct2, ct3)
                 if(arg == 'f'):
-                    fanSpeed = getAMDFanSpeedHack(gpu.query_temperature()) 
+                    fanSpeed = getAMDFanSpeedHack(gpu.query_temperature())
                     output += fan(fanSpeed, i, cf)
                 if(arg == 'p'):
                     powerDraw = gpu.query_power()
@@ -304,7 +256,7 @@ def renderAMD():
                 if(arg == 'mv'):
                     memUsed = int(gpu.query_vram_usage() / 100000)
                     memTotal = int(gpu.memory_info["vram_size"] / 100000)
-                    output += memoryVal(memUsed, memTotal, i, cmv)	
+                    output += memoryVal(memUsed, memTotal, i, cmv)
     return output
 
 
@@ -314,78 +266,82 @@ signal.signal(signal.SIGINT, clear_on_exit)
 
 orderedArgs = []
 shown_gpus = []
-raw_output = False 
-
-#Default colors
+raw_output = False
+raw_output_nounits = False
+# Default colors
 cu = 'red'
 ct1 = 'blue'
 ct2 = 'yellow'
 ct3 = 'red'
-cf = 'cyan' 
+cf = 'cyan'
 cp = 'yellow'
 cm = 'green'
 cmp = 'green'
 cmv = 'green'
 
 
-#Parse input args
-for i in range(1,len(sys.argv)):
-	if(sys.argv[i] == 'help' or sys.argv[i] == '--help' or sys.argv[i] == '-h'):
-		help()
-		exit(0)		
+# Parse input args
+for i in range(1, len(sys.argv)):
+    if(sys.argv[i] == 'help' or sys.argv[i] == '--help' or sys.argv[i] == '-h'):
+        help()
+        exit(0)
 
-	if(sys.argv[i] == '-u'):
-		orderedArgs.append("u")
-		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-			cu = sys.argv[i+1]
-	if(sys.argv[i] == '-t'):
-		orderedArgs.append("t")	
-		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-			ct1 = sys.argv[i+1]
-		if(i < len(sys.argv)-2 and "-" not in sys.argv[i+2]):
-			ct2 = sys.argv[i+2]	
-		if(i < len(sys.argv)-3 and "-" not in sys.argv[i+3]):
-			ct3 = sys.argv[i+3]	
-	if(sys.argv[i] == '-f'):
-		orderedArgs.append("f")
-		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-			cf = sys.argv[i+1]
-	if(sys.argv[i] == '-p'):
-		orderedArgs.append("p")
-		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-			cp = sys.argv[i+1]
-	if(sys.argv[i] == '-m'):
-		orderedArgs.append("m")
-		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-			cm = sys.argv[i+1]
-	if(sys.argv[i] == '-mp'):
-		orderedArgs.append("mp")
-		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-			cmp = sys.argv[i+1]	
-	if(sys.argv[i] == '-mv'):
-		orderedArgs.append("mv")
-		if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-			cmv = sys.argv[i+1]
-	if(sys.argv[i] == '-gpu'):
-	    if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
-                try:
-                    shown_gpus.append(int(sys.argv[i+1]))	
-                except:
-                    print("Input Error. GPU value must be an integer.")
-              
-	if(sys.argv[i] == '-raw'):
-            raw_output=True
+    if(sys.argv[i] == '-u'):
+        orderedArgs.append("u")
+        if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+            cu = sys.argv[i+1]
+    if(sys.argv[i] == '-t'):
+        orderedArgs.append("t")
+        if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+            ct1 = sys.argv[i+1]
+        if(i < len(sys.argv)-2 and "-" not in sys.argv[i+2]):
+            ct2 = sys.argv[i+2]
+        if(i < len(sys.argv)-3 and "-" not in sys.argv[i+3]):
+            ct3 = sys.argv[i+3]
+    if(sys.argv[i] == '-f'):
+        orderedArgs.append("f")
+        if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+            cf = sys.argv[i+1]
+    if(sys.argv[i] == '-p'):
+        orderedArgs.append("p")
+        if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+            cp = sys.argv[i+1]
+    if(sys.argv[i] == '-m'):
+        orderedArgs.append("m")
+        if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+            cm = sys.argv[i+1]
+    if(sys.argv[i] == '-mp'):
+        orderedArgs.append("mp")
+        if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+            cmp = sys.argv[i+1]
+    if(sys.argv[i] == '-mv'):
+        orderedArgs.append("mv")
+        if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+            cmv = sys.argv[i+1]
+    if(sys.argv[i] == '-gpu'):
+        if(i < len(sys.argv)-1 and "-" not in sys.argv[i+1]):
+            try:
+                shown_gpus.append(int(sys.argv[i+1]))
+            except:
+                print("Input Error. GPU value must be an integer.")
+    if(sys.argv[i] == '-raw'):
+        raw_output = True
+    if(sys.argv[i] == '-RAW'):
+        raw_output_nounits = True
+        raw_output = True
+
 
 output = ''
 
 
 if(len(orderedArgs) == 0):
-	output = ("No arguments given, using default config.\nType 'ecotop help' for more options.\n\n\n")
-	orderedArgs.append("u")
-	orderedArgs.append("t")
-	orderedArgs.append("f")
-	orderedArgs.append("p")
-	orderedArgs.append("mp")
+    output = (
+        "No arguments given, using default config.\nType 'ecotop help' for more options.\n\n\n")
+    orderedArgs.append("u")
+    orderedArgs.append("t")
+    orderedArgs.append("f")
+    orderedArgs.append("p")
+    orderedArgs.append("mp")
 
 
 # Scan for AMD GPUs
@@ -398,10 +354,10 @@ except:
 # Scan for Nvidia GPUs
 num_nv = 0
 try:
-    g = gpustat.GPUStatCollection.new_query() 
-    sio= io.StringIO()
+    g = gpustat.GPUStatCollection.new_query()
+    sio = io.StringIO()
     g.print_json(sio)
-    j=json.loads(sio.getvalue())
+    j = json.loads(sio.getvalue())
     num_nv = len(j["gpus"])
 except:
     pass
@@ -416,21 +372,19 @@ while(True):
     else:
         amdGraphs = ""
 
-    if(num_nv != 0): 
+    if(num_nv != 0):
         nvGraphs = renderNV(num_amd)
     else:
         nvGraphs = ""
 
-    os.system('clear')
-    print(amdGraphs,end="")
-    print(nvGraphs,end="")
+    if(not raw_output):
+        os.system('clear')
+
+    print(amdGraphs, end="")
+    print(nvGraphs, end="")
 
     # If raw output only print once and exit
     if(raw_output):
         break
 
-
     sleep(1)
-	
-	
-
